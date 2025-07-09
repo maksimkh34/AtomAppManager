@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{B1A4B5B6-68AB-44C4-8A23-DA91B2EF1763}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopUI", "DesktopUI\DesktopUI.csproj", "{BF29948F-ECC3-4F44-8772-551F93ACDD98}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "atomsdk", "atomsdk\atomsdk.csproj", "{3F5D85D0-4246-4B93-B11F-2652E53622A6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDKUI", "SDKUI\SDKUI.csproj", "{9222E454-9B40-45BE-B37C-9C0D741E11FF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B1A4B5B6-68AB-44C4-8A23-DA91B2EF1763}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1A4B5B6-68AB-44C4-8A23-DA91B2EF1763}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1A4B5B6-68AB-44C4-8A23-DA91B2EF1763}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1A4B5B6-68AB-44C4-8A23-DA91B2EF1763}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF29948F-ECC3-4F44-8772-551F93ACDD98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF29948F-ECC3-4F44-8772-551F93ACDD98}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF29948F-ECC3-4F44-8772-551F93ACDD98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF29948F-ECC3-4F44-8772-551F93ACDD98}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F5D85D0-4246-4B93-B11F-2652E53622A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F5D85D0-4246-4B93-B11F-2652E53622A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F5D85D0-4246-4B93-B11F-2652E53622A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F5D85D0-4246-4B93-B11F-2652E53622A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9222E454-9B40-45BE-B37C-9C0D741E11FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9222E454-9B40-45BE-B37C-9C0D741E11FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9222E454-9B40-45BE-B37C-9C0D741E11FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9222E454-9B40-45BE-B37C-9C0D741E11FF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
