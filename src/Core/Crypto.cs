@@ -1,0 +1,67 @@
+﻿using System.Runtime.Versioning;
+using System.Security.Cryptography;
+using System.Text;
+using NSec.Cryptography;
+
+namespace Core;
+
+public static class Crypto
+{
+    private static readonly string KeyStorageDir =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AtomAppManager", "keys");
+
+    public const string CurrentPrivateKeyFilename = "current";
+
+    private static readonly SignatureAlgorithm Algorithm = SignatureAlgorithm.Ed25519;
+    
+    private static string GetKeyPath(string name) => Path.Combine(KeyStorageDir, $"{name}.bin");
+    
+    public static (byte[], byte[]) GenerateKeyPair()
+    {
+        Directory.CreateDirectory(KeyStorageDir);
+
+        using var key = new Key(Algorithm, new KeyCreationParameters
+        {
+            ExportPolicy = KeyExportPolicies.AllowPlaintextExport
+        });
+
+        var rawPrivate = key.Export(KeyBlobFormat.RawPrivateKey);
+        var rawPublic = key.PublicKey.Export(KeyBlobFormat.RawPublicKey);
+
+        return (rawPrivate, rawPublic);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void WriteEncryptedPrivateKey(string filename, byte[] privateKey, string password)
+    {
+        var protectedPrivate = ProtectedData.Protect(privateKey, Encoding.UTF8.GetBytes(password), DataProtectionScope.CurrentUser);
+        File.WriteAllBytes(GetKeyPath(filename), protectedPrivate);
+    }
+
+    private static string MoveCurrentKeyTo(string version)
+    {
+        if (version == "")
+            return "";
+        if(File.Exists(GetKeyPath(version))) 
+            throw new FileErrorException("PrivateKey file for this version already exists");
+        if(!File.Exists(GetKeyPath(CurrentPrivateKeyFilename)))
+            return "";
+        File.Move(GetKeyPath(CurrentPrivateKeyFilename), GetKeyPath(version));
+        return version;
+    }
+
+    [SupportedOSPlatform("windows")]
+    public static string SetupKeysForRelease(string password, string oldVersionName, string publicKeyFilePath)
+    {
+        var keys = GenerateKeyPair();
+        var result = MoveCurrentKeyTo(oldVersionName);
+        WriteEncryptedPrivateKey(CurrentPrivateKeyFilename, keys.Item1, password);
+        WritePublicKey(keys.Item2, publicKeyFilePath);
+        return result;
+    }
+
+    private static void WritePublicKey(byte[] publicKey, string filename)
+    {
+        File.WriteAllBytes(filename, publicKey);
+    }
+}
