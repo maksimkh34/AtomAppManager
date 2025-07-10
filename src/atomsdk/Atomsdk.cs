@@ -79,6 +79,32 @@ public static class Atomsdk
             result.GetValue(outputFilePath),
             result.GetValue(customPrivateKeyPath),
             result.GetValue(encryptingPasswordOption)));
+        
+        // verify
+        
+        Option<FileInfo> publicKeyPath = new("--public-key", "-pk")
+        {
+            Description = "PublicKey path",
+            Required = true
+        };
+        Option<FileInfo> filePath = new("--file", "-f")
+        {
+            Description = "Path to file that needs to be verified",
+            Required = true
+        };
+        
+        Command verifyCommand = new("verify", "Verify payload zip")
+        {
+            publicKeyPath,
+            filePath
+        };
+        
+        rootCommand.Subcommands.Add(verifyCommand);
+        
+        verifyCommand.SetAction(result => Handlers.TryVerifyData(result.GetValue(publicKeyPath), 
+            result.GetValue(filePath)));
+        
+        // main
 
         return rootCommand.Parse(args).Invoke();
     }

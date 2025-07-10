@@ -89,4 +89,20 @@ public static class Handlers
         
         Directory.Delete(tempPath, true);
     }
+    
+    public static void TryVerifyData(FileInfo? publicKeyPath, FileInfo? archivePath)
+    {
+        if (archivePath == null || publicKeyPath == null) return;
+        var tempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AtomAppManager",
+            "temp");
+        var payloadPath = Path.Combine(tempPath, "payload.zip");
+        var signPath = Path.Combine(tempPath, "signature.sig");
+        Directory.Delete(tempPath, true);
+        ZipFile.ExtractToDirectory(archivePath.FullName, tempPath);
+        if(!(File.Exists(signPath) && File.Exists(payloadPath)))
+            throw new FileErrorException("This archive was not signed with atomsdk.");
+        var result = Crypto.VerifyData(File.ReadAllBytes(payloadPath), File.ReadAllBytes(signPath), 
+            File.ReadAllBytes(publicKeyPath.FullName));
+        Console.WriteLine(result ? "Signature verified." : "Signature verification failed.");
+    }
 }

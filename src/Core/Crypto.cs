@@ -1,4 +1,5 @@
-﻿using System.Runtime.Versioning;
+﻿using System.IO.Compression;
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text;
 using NSec.Cryptography;
@@ -83,5 +84,12 @@ public static class Crypto
         var hash = SHA256.HashData(payloadZip);
 
         return Algorithm.Sign(key, hash);
+    }
+
+    public static bool VerifyData(byte[] payloadZipBytes, byte[] signature, byte[] publicKey)
+    {
+        var pubKey = PublicKey.Import(Algorithm, publicKey, KeyBlobFormat.RawPublicKey);
+        var hash = SHA256.HashData(payloadZipBytes);
+        return Algorithm.Verify(pubKey, hash, signature);
     }
 }
