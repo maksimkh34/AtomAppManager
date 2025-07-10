@@ -1,5 +1,6 @@
 ﻿using System.IO.Compression;
 using System.Runtime.Versioning;
+using System.Security.Cryptography;
 using Core;
 
 namespace Atomsdk;
@@ -13,11 +14,11 @@ public class Atomsdk
         RootCommand rootCommand = new("AtomAppManager Developer SDK");
         
         // generatekeys
-        Option<string> requiredPasswordOption = new("--password", "-p")
+        
+        Option<string> encryptingPasswordOption = new("--password", "-p")
         {
             Description = "Password to encrypt or decrypt your private key. Store it safely. Your private key is the " +
-                          "only way to sign your packages and repositories as developer.",
-            Required = true
+                          "only way to sign your packages and repositories as developer."
         };
         Option<FileInfo> outputPublicKeyOption = new("--output", "-o")
         {
@@ -37,7 +38,7 @@ public class Atomsdk
         Command generateKeysCommand = new("generatekeys", "Generate new pair (PrivateKey, PublicKey)" +
                                                           " for new release.")
         {
-            requiredPasswordOption,
+            encryptingPasswordOption,
             moveOldOption,
             outputPublicKeyOption,
             ignoreMoveOldOption
@@ -45,7 +46,7 @@ public class Atomsdk
         
         rootCommand.Subcommands.Add(generateKeysCommand);
         
-        generateKeysCommand.SetAction(result => TryGenerateKeys(result.GetValue(requiredPasswordOption), 
+        generateKeysCommand.SetAction(result => TryGenerateKeys(result.GetValue(encryptingPasswordOption), 
             result.GetValue(moveOldOption), 
             result.GetValue(outputPublicKeyOption),
             result.GetValue(ignoreMoveOldOption)));
@@ -63,24 +64,18 @@ public class Atomsdk
             Required = true
         };
         
-        Option<string> passwordOption = new("--password", "-p")
-        {
-            Description = "Password to encrypt or decrypt your private key. Store it safely. Your private key is the " +
-                          "only way to sign your packages and repositories as developer."
-        };
-        
         Command signCommand = new("sign", "Sign payload zip")
         {
             inputPayloadPath,
             outputFilePath,
-            passwordOption
+            encryptingPasswordOption
         };
         
         rootCommand.Subcommands.Add(signCommand);
         
         signCommand.SetAction(result => TrySign(result.GetValue(inputPayloadPath), 
             result.GetValue(outputFilePath),
-            result.GetValue(passwordOption)));
+            result.GetValue(encryptingPasswordOption)));
 
         return rootCommand.Parse(args).Invoke();
     }
@@ -88,7 +83,7 @@ public class Atomsdk
     [SupportedOSPlatform("windows")]
     private static void TryGenerateKeys(string? password, string? moveOld, FileInfo? outputPublicKey, bool ignoreMoveOld)
     {
-        if (password == null || outputPublicKey == null) return;
+        if (outputPublicKey == null) return;
         if (moveOld == null && !ignoreMoveOld)
         {
             Console.WriteLine("Ignoring option to backup old PrivateKey will lead to loss of PrivateKey for" +
@@ -100,7 +95,7 @@ public class Atomsdk
         string privateKeyMovedTo;
         try
         {
-            privateKeyMovedTo = Crypto.SetupKeysForRelease(password, moveOld ?? "", outputPublicKey.FullName);
+            privateKeyMovedTo = Crypto.SetupKeysForRelease(password, moveOld!, outputPublicKey.FullName);
         }
         catch (FileErrorException e)
         {
@@ -109,6 +104,8 @@ public class Atomsdk
         }
 
         Console.WriteLine("Generated new pair. New PrivateKey is now current. ");
+        var passwordSet = password == null ? "not " : "";
+        Console.WriteLine($"Password was {passwordSet}set. ");
         if(privateKeyMovedTo != "")
             Console.WriteLine($"Old private key moved as {privateKeyMovedTo}");
         Console.WriteLine($"New PublicKey written to {outputPublicKey.FullName}");
@@ -126,9 +123,18 @@ public class Atomsdk
         Directory.CreateDirectory(tempPath);
         
         File.Copy(input.FullName, payloadPath, true);
-        var sign = Crypto.SignData(password, File.ReadAllBytes(payloadPath));
-        File.WriteAllBytes(signPath, sign);
-
+        try
+        {
+            var sign = Crypto.SignData(password, File.ReadAllBytes(payloadPath));
+            File.WriteAllBytes(signPath, sign);
+        }
+        catch (CryptographicException e)
+        {
+            Console.WriteLine("Error decrypting current PrivateKey. Check your password. You may need to regenerate " +
+                              "your keypair to sign files.\n\n" + e.Message);
+            return;
+        }
+        
         if (File.Exists(output.FullName))
         {
             var suffix = "";

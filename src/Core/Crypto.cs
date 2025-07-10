@@ -32,9 +32,12 @@ public static class Crypto
     }
 
     [SupportedOSPlatform("windows")]
-    private static void WriteEncryptedPrivateKey(string filename, byte[] privateKey, string password)
+    private static void WriteEncryptedPrivateKey(string filename, byte[] privateKey, string? password)
     {
-        var protectedPrivate = ProtectedData.Protect(privateKey, Encoding.UTF8.GetBytes(password), DataProtectionScope.CurrentUser);
+        byte[]? pass = null;
+        if (password != null)
+            pass = Encoding.UTF8.GetBytes(password);
+        var protectedPrivate = ProtectedData.Protect(privateKey, pass, DataProtectionScope.CurrentUser);
         File.WriteAllBytes(GetKeyPath(filename), protectedPrivate);
     }
 
@@ -51,7 +54,7 @@ public static class Crypto
     }
 
     [SupportedOSPlatform("windows")]
-    public static string SetupKeysForRelease(string password, string oldVersionName, string publicKeyFilePath)
+    public static string SetupKeysForRelease(string? password, string oldVersionName, string publicKeyFilePath)
     {
         var keys = GenerateKeyPair();
         var result = MoveCurrentKeyTo(oldVersionName);
