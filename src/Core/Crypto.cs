@@ -62,6 +62,23 @@ public static class Crypto
 
     private static void WritePublicKey(byte[] publicKey, string filename)
     {
+        Directory.CreateDirectory(Path.GetDirectoryName(filename)!);
         File.WriteAllBytes(filename, publicKey);
+    }
+    
+    [SupportedOSPlatform("windows")]
+    public static byte[] SignData(string? password, byte[] payloadZip)
+    {
+        byte[]? pass = null;
+        if(password != null)
+            pass = Encoding.UTF8.GetBytes(password);
+        var privateKeyBytes = File.ReadAllBytes(GetKeyPath(CurrentPrivateKeyFilename));
+        var rawPrivate = ProtectedData.Unprotect(privateKeyBytes, pass
+            , DataProtectionScope.CurrentUser);
+
+        using var key = Key.Import(Algorithm, rawPrivate, KeyBlobFormat.RawPrivateKey);
+        var hash = SHA256.HashData(payloadZip);
+
+        return Algorithm.Sign(key, hash);
     }
 }

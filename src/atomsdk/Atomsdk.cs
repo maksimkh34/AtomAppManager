@@ -1,4 +1,5 @@
-﻿using System.Runtime.Versioning;
+﻿using System.IO.Compression;
+using System.Runtime.Versioning;
 using Core;
 
 namespace Atomsdk;
@@ -9,7 +10,10 @@ public class Atomsdk
     [SupportedOSPlatform("windows")]
     private static int Main(string[] args)
     {
-        Option<string> passwordOption = new("--password", "-p")
+        RootCommand rootCommand = new("AtomAppManager Developer SDK");
+        
+        // generatekeys
+        Option<string> requiredPasswordOption = new("--password", "-p")
         {
             Description = "Password to encrypt or decrypt your private key. Store it safely. Your private key is the " +
                           "only way to sign your packages and repositories as developer.",
@@ -30,13 +34,10 @@ public class Atomsdk
         {
             Description = "Ignore moveOldOption warning. You will permanently lose your current PrivateKey."
         };
-        
-        RootCommand rootCommand = new("AtomAppManager Developer SDK");
-
         Command generateKeysCommand = new("generatekeys", "Generate new pair (PrivateKey, PublicKey)" +
                                                           " for new release.")
         {
-            passwordOption,
+            requiredPasswordOption,
             moveOldOption,
             outputPublicKeyOption,
             ignoreMoveOldOption
@@ -44,10 +45,42 @@ public class Atomsdk
         
         rootCommand.Subcommands.Add(generateKeysCommand);
         
-        generateKeysCommand.SetAction(result => TryGenerateKeys(result.GetValue(passwordOption), 
+        generateKeysCommand.SetAction(result => TryGenerateKeys(result.GetValue(requiredPasswordOption), 
             result.GetValue(moveOldOption), 
             result.GetValue(outputPublicKeyOption),
             result.GetValue(ignoreMoveOldOption)));
+        
+        // sign
+        
+        Option<FileInfo> inputPayloadPath = new("--input", "-i")
+        {
+            Description = "Input file for signing",
+            Required = true
+        };
+        Option<FileInfo> outputFilePath = new("--output", "-o")
+        {
+            Description = "Output archive with signature.sig and payload.zip",
+            Required = true
+        };
+        
+        Option<string> passwordOption = new("--password", "-p")
+        {
+            Description = "Password to encrypt or decrypt your private key. Store it safely. Your private key is the " +
+                          "only way to sign your packages and repositories as developer."
+        };
+        
+        Command signCommand = new("sign", "Sign payload zip")
+        {
+            inputPayloadPath,
+            outputFilePath,
+            passwordOption
+        };
+        
+        rootCommand.Subcommands.Add(signCommand);
+        
+        signCommand.SetAction(result => TrySign(result.GetValue(inputPayloadPath), 
+            result.GetValue(outputFilePath),
+            result.GetValue(passwordOption)));
 
         return rootCommand.Parse(args).Invoke();
     }
@@ -79,5 +112,46 @@ public class Atomsdk
         if(privateKeyMovedTo != "")
             Console.WriteLine($"Old private key moved as {privateKeyMovedTo}");
         Console.WriteLine($"New PublicKey written to {outputPublicKey.FullName}");
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void TrySign(FileInfo? input, FileInfo? output, string? password)
+    {
+        if(input == null || output == null) 
+            return;
+        var tempPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AtomAppManager",
+            "temp");
+        var payloadPath = Path.Combine(tempPath, "payload.zip");
+        var signPath = Path.Combine(tempPath, "signature.sig");
+        Directory.CreateDirectory(tempPath);
+        
+        File.Copy(input.FullName, payloadPath, true);
+        var sign = Crypto.SignData(password, File.ReadAllBytes(payloadPath));
+        File.WriteAllBytes(signPath, sign);
+
+        if (File.Exists(output.FullName))
+        {
+            var suffix = "";
+            if(File.Exists(output.FullName + ".backup"))
+            {
+                var i = 1;
+
+                while(File.Exists(output.FullName + ".backup-" + i))
+                {
+                    i += 1;
+                }
+                
+                suffix = "-" + i;
+            }
+
+            var dest = output.FullName + ".backup" + suffix;
+            Console.WriteLine($"Moving {output.FullName} to {dest}");
+            File.Move(output.FullName, dest);    
+        }
+        
+        ZipFile.CreateFromDirectory(tempPath, output.FullName);
+        Console.WriteLine($"Signed: {output.FullName} ({new FileInfo(output.FullName).Length} bytes)");
+        
+        Directory.Delete(tempPath, true);
     }
 }
